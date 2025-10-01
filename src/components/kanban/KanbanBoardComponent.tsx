@@ -28,8 +28,12 @@ export default function KanbanBoardComponent() {
       setLoading(true);
       const fetchedCards = await getCards();
       setCards(fetchedCards);
-    } catch (err: any) {
-      setError(err.message || "Failed to fetch cards");
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Failed to fetch cards");
+      }
     } finally {
       setLoading(false);
     }
@@ -51,14 +55,22 @@ export default function KanbanBoardComponent() {
 
   const onDragEnd = async (result: DropResult) => {
     const { destination, source, draggableId } = result;
-    if (!destination || (destination.droppableId === source.droppableId && destination.index === source.index)) return;
+
+    if (
+      !destination ||
+      (destination.droppableId === source.droppableId && destination.index === source.index)
+    )
+      return;
 
     const draggedCardId = Number(draggableId);
     const draggedCard = cards.find((card) => card.id === draggedCardId);
     if (!draggedCard) return;
 
     const newCards = Array.from(cards);
-    const [removed] = newCards.splice(cards.findIndex((card) => card.id === draggedCardId), 1);
+    const [removed] = newCards.splice(
+      cards.findIndex((card) => card.id === draggedCardId),
+      1
+    );
 
     if (source.droppableId === destination.droppableId) {
       newCards.splice(destination.index, 0, removed);
@@ -80,28 +92,51 @@ export default function KanbanBoardComponent() {
 
       try {
         await updateCard(draggedCardId, { status: newStatus });
-      } catch (err) {
-        console.error(err);
+      } catch (updateError) {
+        console.error(updateError);
         fetchCards();
       }
     }
   };
 
-  if (loading) return <div className="flex justify-center items-center h-screen text-lg">Loading Kanban Board...</div>;
-  if (error) return <div className="flex justify-center items-center h-screen text-red-500 text-lg">Error: {error}</div>;
+  if (loading)
+    return (
+      <div className="flex justify-center items-center h-screen text-lg">
+        Loading Kanban Board...
+      </div>
+    );
+
+  if (error)
+    return (
+      <div className="flex justify-center items-center h-screen text-red-500 text-lg">
+        Error: {error}
+      </div>
+    );
 
   return (
-    <div className={`${darkMode ? "dark" : ""} flex flex-col h-screen p-6 bg-gray-50 dark:bg-black transition-colors`}>
+    <div
+      className={`${
+        darkMode ? "dark" : ""
+      } flex flex-col h-screen p-6 bg-gray-50 dark:bg-black transition-colors`}
+    >
       {/* Header with glass effect */}
       <div className="flex justify-between items-center mb-6 bg-white/20 dark:bg-white/10 backdrop-blur-md rounded-xl p-4 shadow-lg transition-colors">
-        <h1 className={`text-3xl font-bold transition-colors ${darkMode ? "text-green-400" : "text-blue-600"}`}>
+        <h1
+          className={`text-3xl font-bold transition-colors ${
+            darkMode ? "text-green-400" : "text-blue-600"
+          }`}
+        >
           Kanban Board
         </h1>
         <div className="flex gap-2">
           <Button onClick={() => setDarkMode(!darkMode)} variant="outline">
             {darkMode ? "Light Mode" : "Dark Mode"}
           </Button>
-          <CreateCardModal isOpen={isCreateModalOpen} onOpenChange={setIsCreateModalOpen} onCardCreated={fetchCards} />
+          <CreateCardModal
+            isOpen={isCreateModalOpen}
+            onOpenChange={setIsCreateModalOpen}
+            onCardCreated={fetchCards}
+          />
           <LogoutButton />
         </div>
       </div>
@@ -121,8 +156,18 @@ export default function KanbanBoardComponent() {
         </div>
       </DragDropContext>
 
-      <UpdateCardModal isOpen={isUpdateModalOpen} onOpenChange={setIsUpdateModalOpen} card={selectedCard} onCardUpdated={fetchCards} />
-      <DeleteCardModal isOpen={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen} card={cardToDelete} onCardDeleted={fetchCards} />
+      <UpdateCardModal
+        isOpen={isUpdateModalOpen}
+        onOpenChange={setIsUpdateModalOpen}
+        card={selectedCard}
+        onCardUpdated={fetchCards}
+      />
+      <DeleteCardModal
+        isOpen={isDeleteModalOpen}
+        onOpenChange={setIsDeleteModalOpen}
+        card={cardToDelete}
+        onCardDeleted={fetchCards}
+      />
     </div>
   );
 }
